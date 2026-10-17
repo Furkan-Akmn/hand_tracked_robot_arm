@@ -1,0 +1,128 @@
+<?xml version="1.0"?>
+<!-- UR5e + Robotiq 2F-85 for gz sim (Gazebo Harmonic), with ros2_control.
+
+     Mirrors ur_simulation_gz/urdf/ur_gz.urdf.xacro and extends it with the
+     Robotiq gripper - the adapter mounts on tool0, the gripper on the adapter
+     mount link. Both the arm and the gripper declare ros2_control systems;
+     they are loaded into the single controller_manager created by the
+     gz_ros2_control Gazebo plugin declared below.
+
+     Accepted arguments are a superset of what ur_sim_control.launch.py passes
+     to description_file, so it can be dropped in via that launch argument.
+-->
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
+  <!-- robot name parameter -->
+  <xacro:arg name="name" default="ur"/>
+
+  <!-- import main macros -->
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find ur_simulation_gz)/urdf/ur_gz.ros2_control.xacro"/>
+  <xacro:include filename="$(find robotiq_description)/urdf/ur_to_robotiq_adapter.urdf.xacro"/>
+  <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_85_macro.urdf.xacro"/>
+
+  <!-- possible 'ur_type' values: ur3, ur3e, ur5, ur5e, ur7e, ur10, ur10e, ur12e, ur16e, ur8long, ur15, ur18, ur20, ur30 -->
+  <xacro:arg name="ur_type" default="ur5e"/>
+
+  <!-- parameters -->
+  <xacro:arg name="tf_prefix" default=""/>
+  <xacro:arg name="joint_limit_params" default="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml"/>
+  <xacro:arg name="kinematics_params" default="$(find ur_description)/config/$(arg ur_type)/default_kinematics.yaml"/>
+  <xacro:arg name="physical_params" default="$(find ur_description)/config/$(arg ur_type)/physical_parameters.yaml"/>
+  <xacro:arg name="visual_params" default="$(find ur_description)/config/$(arg ur_type)/visual_parameters.yaml"/>
+  <xacro:arg name="transmission_hw_interface" default=""/>
+  <xacro:arg name="safety_limits" default="false"/>
+  <xacro:arg name="safety_pos_margin" default="0.15"/>
+  <xacro:arg name="safety_k_position" default="20"/>
+
+  <xacro:arg name="simulation_controllers" default=""/>
+  <xacro:arg name="ros_namespace" default=""/>
+
+  <!-- gripper prefix (kept separate from the arm's tf_prefix) -->
+  <xacro:arg name="gripper_prefix" default=""/>
+
+  <!-- create link fixed to the "world" -->
+  <link name="world"/>
+
+  <link name="ground_plane">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="5 5 0"/>
+      </geometry>
+      <material name="ground_white">
+        <color rgba="1 1 1 0.5"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="5 5 0"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="ground_plane_joint" type="fixed">
+    <origin xyz="0 0 -0.01" rpy="0 0 0"/>
+    <parent link="world"/>
+    <child link="ground_plane"/>
+  </joint>
+
+  <!-- arm -->
+  <xacro:ur_robot
+    name="$(arg name)"
+    tf_prefix="$(arg tf_prefix)"
+    parent="world"
+    joint_limits_parameters_file="$(arg joint_limit_params)"
+    kinematics_parameters_file="$(arg kinematics_params)"
+    physical_parameters_file="$(arg physical_params)"
+    visual_parameters_file="$(arg visual_params)"
+    safety_limits="$(arg safety_limits)"
+    safety_pos_margin="$(arg safety_pos_margin)"
+    safety_k_position="$(arg safety_k_position)"
+    force_abs_paths="true"
+    >
+    <origin xyz="0 0 0" rpy="0 0 0"/>  <!-- position robot in the world -->
+  </xacro:ur_robot>
+
+  <!-- Robotiq 2F-85 - flange adapter on tool0, gripper on the adapter mount.
+       The default attach orientation from robotiq_description keeps the
+       gripper's +Z (fingers' approach direction) aligned with tool0's +Z. -->
+  <xacro:ur_to_robotiq
+    prefix="$(arg gripper_prefix)"
+    connected_to="$(arg tf_prefix)tool0"
+    rotation="${pi/2}"/>
+  <xacro:robotiq_gripper
+    name="robotiq_gripper"
+    prefix="$(arg gripper_prefix)"
+    parent="$(arg gripper_prefix)gripper_mount_link"
+    sim_ignition="true">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:robotiq_gripper>
+
+  <gazebo reference="world">
+  </gazebo>
+  <gazebo>
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(arg simulation_controllers)</parameters>
+      <ros>
+        <namespace>$(arg ros_namespace)</namespace>
+      </ros>
+    </plugin>
+    <!-- Publish all simulated joints (including the gripper's free joints) -->
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher"/>
+  </gazebo>
+
+  <!-- ros2 control instance for the arm (joints of the gripper are declared
+       in the Robotiq macro's own ros2_control system) -->
+  <!-- Spawn pose: tool pointing down with the elbow bent. The upstream default
+       (elbow 0, arm stretched straight up) is a kinematic singularity, and
+       MoveIt Servo refuses to move out of it ("Very close to a singularity,
+       emergency stop"). -->
+  <xacro:ur_ros2_control
+    name="$(arg name)"
+    tf_prefix="$(arg tf_prefix)"
+    transmission_hw_interface="$(arg transmission_hw_interface)"
+    initial_positions="${dict(shoulder_pan_joint=0.0,shoulder_lift_joint=-1.57,elbow_joint=1.57,wrist_1_joint=-1.57,wrist_2_joint=-1.57,wrist_3_joint=0.0)}"
+  />
+</robot>
