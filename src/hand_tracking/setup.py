@@ -13,8 +13,8 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="Moses",
-    maintainer_email="moses@example.com",
+    maintainer="Furkan Akman",
+    maintainer_email="furkanakman591@gmail.com",
     description="Webcam hand tracking (MediaPipe) publishing /hand/state.",
     license="MIT",
     entry_points={

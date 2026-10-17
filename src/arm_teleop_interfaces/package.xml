@@ -4,7 +4,7 @@
   <name>arm_teleop_interfaces</name>
   <version>0.1.0</version>
   <description>Custom messages for the hand-tracked robot arm project.</description>
-  <maintainer email="moses@example.com">Moses</maintainer>
+  <maintainer email="furkanakman591@gmail.com">Furkan Akman</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

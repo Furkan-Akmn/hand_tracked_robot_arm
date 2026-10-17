@@ -4,7 +4,7 @@
   <name>hand_tracking</name>
   <version>0.1.0</version>
   <description>Webcam hand tracking (MediaPipe) publishing /hand/state.</description>
-  <maintainer email="moses@example.com">Moses</maintainer>
+  <maintainer email="furkanakman591@gmail.com">Furkan Akman</maintainer>
   <license>MIT</license>
 
   <depend>rclpy</depend>
