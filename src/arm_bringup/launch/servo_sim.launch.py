@@ -14,12 +14,13 @@ set, cannot accept input". Select twist input (1 = TWIST), then stream:
 
   ros2 service call /servo_node/switch_command_type \
       moveit_msgs/srv/ServoCommandType "{command_type: 1}"
-  ros2 topic pub -r 10 /servo_node/delta_twist_cmds \
-      geometry_msgs/msg/TwistStamped \
-      "{header: {frame_id: tool0}, twist: {linear: {x: 0.05}, angular: {z: 0.2}}}"
+  python scripts/servo_twist.py --linear 0.05 0 0 --duration 3
 
-Servo stops by itself if no command arrives for `incoming_command_timeout`
-(0.1 s in arm_bringup's config/servo_params.yaml).
+Servo drops any twist older than `incoming_command_timeout` (0.1 s in
+arm_bringup's config/servo_params.yaml). `ros2 topic pub` leaves the header
+stamp at zero, so its twists are silently ignored - use
+scripts/servo_twist.py, which stamps every message with the current (sim)
+time. Servo also stops by itself if no stamped command arrives in time.
 """
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription

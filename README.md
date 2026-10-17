@@ -10,6 +10,11 @@ box, the hardware stays out of the sterilization problem.
 
 ## Status
 
+**M2 — UR5e + Robotiq 2F-85 in Gazebo with MoveIt Servo ✅**
+The simulated cell comes up headless or with GUIs, the gripper takes
+open/close goals, and MoveIt Servo follows Cartesian twists streamed by
+`scripts/servo_twist.py`. See "Run the simulated arm" below.
+
 **M1 — hand tracking ROS 2 node ✅**
 `hand_tracking` publishes `/hand/state` from the webcam: 21 raw landmarks,
 One-Euro-filtered palm position/orientation, a pinch signal, and a strict
@@ -37,6 +42,34 @@ Watch the data land:
 scripts/run.sh ros2 topic echo /hand/state --once
 scripts/run.sh ros2 topic hz /hand/state
 ```
+
+### Run the simulated arm (M2)
+
+Gazebo + RViz + MoveIt Servo for the UR5e with a Robotiq 2F-85:
+
+```bash
+scripts/run.sh ros2 launch arm_bringup servo_sim.launch.py
+```
+
+In a second terminal — select the twist input once per session, then stream a
+stamped twist for 4 s:
+
+```bash
+scripts/run.sh ros2 service call /servo_node/switch_command_type \
+    moveit_msgs/srv/ServoCommandType "{command_type: 1}"
+scripts/run.sh python scripts/servo_twist.py --linear 0.05 0 0 --duration 4
+```
+
+Gripper open (0.0) / close (0.8):
+
+```bash
+scripts/run.sh ros2 action send_goal /robotiq_gripper_controller/gripper_cmd \
+    control_msgs/action/ParallelGripperCommand \
+    "{command: {name: [robotiq_85_left_knuckle_joint], position: [0.8]}}"
+```
+
+Twists must carry a fresh timestamp: `ros2 topic pub` sends stamp 0, which
+Servo (Jazzy) silently drops as stale — use `scripts/servo_twist.py`.
 
 Record 30 s of your hand motion for offline tests:
 
@@ -81,7 +114,7 @@ Three swappable layers connected by ROS 2 topics:
 
 - [x] **M0** — environment, repo scaffold, webcam hand-skeleton demo
 - [x] **M1** — `hand_tracking` node publishing `/hand/state` + rosbag capture/replay
-- [ ] **M2** — UR5e + Robotiq live in Gazebo, MoveIt Servo bring-up
+- [x] **M2** — UR5e + Robotiq live in Gazebo (controllers, gripper, Servo-stamped twists)
 - [ ] **M3** — `teleop_mapping` node: wave hand → arm moves (watchdog + clamps verified)
 - [ ] **M4** — tests (pytest + bag replay), docs, demo GIF
 - [ ] **M5** — VR input (OpenXR) publishing the same `/hand/state` interface
