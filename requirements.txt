@@ -1,7 +1,16 @@
-# Python dependencies for the project venv (.venv, created by scripts/setup.sh
-# with --system-site-packages so rclpy from /opt/ros stays importable).
+# Python dependencies for the project venv (.venv), created by scripts/setup.sh
+# with --system-site-packages so rclpy from /opt/ros stays importable.
 #
-# NOTE: mediapipe pulls its own opencv-contrib-python; do NOT add opencv-python
-# on top of it (two cv2 providers in one venv = pain).
-mediapipe
-numpy
+# IMPORTANT: every dependency here that ALSO exists as an apt package and gets
+# imported by mediapipe must be listed explicitly. With --system-site-packages,
+# pip treats "Requirement already satisfied" by an old system package as done,
+# which can produce ABI crashes (e.g. apt matplotlib 3.6.3 compiled against
+# numpy 1.x vs venv numpy 2.x). That is why matplotlib and contourpy are pinned
+# here next to mediapipe. See docs/environment.md.
+#
+# Do NOT add opencv-python; mediapipe ships opencv-contrib-python.
+mediapipe==1.1.1
+numpy==2.5.4
+opencv-contrib-python==5.0.0.93
+matplotlib==3.11.2
+contourpy==1.4.0

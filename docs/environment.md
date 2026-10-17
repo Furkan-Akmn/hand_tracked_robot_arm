@@ -49,6 +49,31 @@ Rules of thumb:
 - Do not add `opencv-python` to `requirements.txt`; mediapipe already ships
   `opencv-contrib-python` and two cv2 providers in one venv will fight.
 
+## The `--system-site-packages` trap (why requirements.txt pins odd packages)
+
+During the first install, `pip install mediapipe` left mediapipe's *unpinned*
+dependency `matplotlib` "already satisfied" by apt's matplotlib 3.6.3 — which
+is compiled against numpy 1.x — while the venv had numpy 2.x. Result on
+`import mediapipe`:
+
+    ImportError: numpy.core.multiarray failed to import
+    (A module compiled using NumPy 1.x cannot be run in NumPy 2.x)
+
+And the same trap was waiting one level deeper in `contourpy` (also a C
+extension dependency of matplotlib).
+
+Rule going forward: **any dependency of mediapipe that also exists as an apt
+package must be listed explicitly and pinned in `requirements.txt`** so the
+venv owns its own copy. That is why `matplotlib` and `contourpy` sit next to
+mediapipe in that file.
+
+Known benign warning (safe to ignore):
+
+    Unable to import Axes3D ... multiple versions of Matplotlib being installed
+
+It is cosmetic fallout of apt's matplotlib + venv's matplotlib coexisting; this
+project never uses 3D projections.
+
 ## Diagnostic cheatsheet
 
 | Symptom                                   | Cause                          | Fix                                     |
@@ -65,3 +90,7 @@ Rules of thumb:
   *newer than anything apt could see*, making Gazebo's `-dev` dependencies
   unsatisfiable. Fix: restore `Suites: noble noble-updates`. Lesson: keep the
   standard Ubuntu pockets enabled.
+- **2026-10-17 — `import mediapipe` crashed with `numpy.core.multiarray
+  failed to import`.** apt's matplotlib (numpy 1.x ABI) shadowed pip's because
+  of `--system-site-packages`; fixed by explicitly installing + pinning
+  venv-owned `matplotlib` and `contourpy`. See the section above.
