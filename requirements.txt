@@ -1,0 +1,7 @@
+# Python dependencies for the project venv (.venv, created by scripts/setup.sh
+# with --system-site-packages so rclpy from /opt/ros stays importable).
+#
+# NOTE: mediapipe pulls its own opencv-contrib-python; do NOT add opencv-python
+# on top of it (two cv2 providers in one venv = pain).
+mediapipe
+numpy
