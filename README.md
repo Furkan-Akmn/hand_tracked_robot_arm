@@ -10,22 +10,53 @@ box, the hardware stays out of the sterilization problem.
 
 ## Status
 
-**M0 — environment + scaffold ✅**
-The webcam → MediaPipe → skeleton pipeline runs locally (verified at
-~26 fps average on the dev laptop, 640×480). No ROS 2 nodes yet.
+**M1 — hand tracking ROS 2 node ✅**
+`hand_tracking` publishes `/hand/state` from the webcam: 21 raw landmarks,
+One-Euro-filtered palm position/orientation, a pinch signal, and a strict
+`detected` contract for downstream safety logic. Real hand motion can be
+recorded into rosbags for deterministic replay. No arm in the loop yet (M2).
 
-## Quickstart (M0)
+## Quickstart
 
 Prerequisites: Ubuntu 24.04 with ROS 2 Jazzy and a webcam.
 
 ```bash
-scripts/setup.sh   # one-time: apt packages + venv + mediapipe model
-scripts/run.sh     # live demo: 21-point hand skeleton on your webcam feed
+scripts/setup.sh      # one-time: apt packages + venv + mediapipe model
+scripts/build.sh      # build the ROS 2 workspace (re-run after src/ changes)
 ```
 
-Press `q` (or Esc) to quit the demo window. Both scripts show download
-progress and keep their terminal window open at the end (success or failure)
-when launched interactively, so nothing disappears before you can read it.
+Run the tracking node (local preview window: add `show_window:=true`):
+
+```bash
+scripts/run.sh ros2 launch hand_tracking hand_tracking.launch.py
+```
+
+Watch the data land:
+
+```bash
+scripts/run.sh ros2 topic echo /hand/state --once
+scripts/run.sh ros2 topic hz /hand/state
+```
+
+Record 30 s of your hand motion for offline tests:
+
+```bash
+scripts/record_handbag.sh 30
+```
+
+The M0 webcam skeleton demo still works without ROS: `scripts/run.sh`.
+
+## Interfaces (M1)
+
+| Topic | Type | Contents |
+|---|---|---|
+| `/hand/state` | `arm_teleop_interfaces/HandState` | `detected`, `confidence`, raw `landmarks[63]`, filtered `palm_center`, `palm_orientation`, `pinch` |
+| `/hand/debug_image` | `sensor_msgs/Image` (bgr8) | annotated camera frame, throttled to 10 Hz |
+
+Contract: when `detected` is false all numeric fields are zeroed (quaternion =
+identity) and MUST be ignored; consumers must also treat stale header stamps
+as "no hand" (watchdog). All coordinates are in mirrored (selfie) image space.
+Details live in the `.msg` comments.
 
 ## Target architecture
 
@@ -49,17 +80,27 @@ Three swappable layers connected by ROS 2 topics:
 ## Milestones
 
 - [x] **M0** — environment, repo scaffold, webcam hand-skeleton demo
-- [ ] **M1** — `hand_tracking` ROS 2 node publishing `/hand/state` + rosbag capture/replay
+- [x] **M1** — `hand_tracking` node publishing `/hand/state` + rosbag capture/replay
 - [ ] **M2** — UR5e + Robotiq live in Gazebo, MoveIt Servo bring-up
 - [ ] **M3** — `teleop_mapping` node: wave hand → arm moves (watchdog + clamps verified)
 - [ ] **M4** — tests (pytest + bag replay), docs, demo GIF
 - [ ] **M5** — VR input (OpenXR) publishing the same `/hand/state` interface
 
-## Design principles
+## Testing
 
-- **Input abstraction** — webcam today, VR headset later; both publish the same interface.
-- **Simulation-first** — the full pipeline is validated in Gazebo before any hardware exists.
-- **Safety by construction** — watchdog on tracking loss, workspace clamping, rate limiting from day one.
+Unit tests (pure Python — no camera, no ROS needed):
+
+```bash
+scripts/run.sh python -m pytest src/hand_tracking/test/test_filters.py \
+    src/hand_tracking/test/test_hand_math.py -v
+```
+
+Bag-replay invariants (needs a recorded bag; skips otherwise):
+
+```bash
+scripts/record_handbag.sh 30
+scripts/run.sh python -m pytest src/hand_tracking/test/test_bag_replay.py -v
+```
 
 ## Docs
 
