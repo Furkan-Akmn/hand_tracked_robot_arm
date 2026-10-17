@@ -68,6 +68,13 @@ def main() -> None:
     if not args.model.exists():
         raise SystemExit(f"model not found: {args.model}\nRun scripts/setup.sh first.")
 
+    print(f"hand_skeleton_demo | camera={args.camera} at {args.width}x{args.height} "
+          f"| model={args.model.name}")
+    if args.headless == 0:
+        print("A window will open - press q or Esc there to quit.")
+    else:
+        print(f"Headless mode: processing {args.headless} frames.")
+
     options = vision.HandLandmarkerOptions(
         base_options=mp_python.BaseOptions(model_asset_path=str(args.model)),
         running_mode=vision.RunningMode.VIDEO,
@@ -146,6 +153,9 @@ def main() -> None:
         return
     print(f"frames={frames}  detection_rate={detections / frames:.0%}  "
           f"avg_fps={frames / elapsed:.1f}")
+    if detections == 0:
+        print("hint: no hand was detected - make sure a hand is visible in the "
+              "camera and well lit.")
 
 
 if __name__ == "__main__":

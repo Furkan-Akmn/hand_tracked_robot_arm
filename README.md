@@ -11,7 +11,8 @@ box, the hardware stays out of the sterilization problem.
 ## Status
 
 **M0 — environment + scaffold ✅**
-The webcam → MediaPipe → skeleton pipeline runs locally. No ROS 2 nodes yet.
+The webcam → MediaPipe → skeleton pipeline runs locally (verified at
+~26 fps average on the dev laptop, 640×480). No ROS 2 nodes yet.
 
 ## Quickstart (M0)
 
@@ -22,7 +23,9 @@ scripts/setup.sh   # one-time: apt packages + venv + mediapipe model
 scripts/run.sh     # live demo: 21-point hand skeleton on your webcam feed
 ```
 
-Press `q` (or Esc) to quit the demo window.
+Press `q` (or Esc) to quit the demo window. Both scripts show download
+progress and keep their terminal window open at the end (success or failure)
+when launched interactively, so nothing disappears before you can read it.
 
 ## Target architecture
 
